@@ -68,18 +68,12 @@ union gbm_bo_handle {
    uint64_t u64;
 };
 
-/** Format of the allocated buffer */
-enum gbm_bo_format {
-   /** RGB with 8 bits per channel in a 32 bit value */
-   GBM_BO_FORMAT_XRGB8888, 
-   /** ARGB with 8 bits per channel in a 32 bit value */
-   GBM_BO_FORMAT_ARGB8888
-};
-
 #define __gbm_fourcc_code(a,b,c,d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | \
 			      ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
 
 #define GBM_FORMAT_BIG_ENDIAN (1<<31) /* format is big endian instead of little endian */
+
+#define GBM_FORMAT_NONE 0
 
 /* color index */
 #define GBM_FORMAT_C8		__gbm_fourcc_code('C', '8', ' ', ' ') /* [7:0] C */

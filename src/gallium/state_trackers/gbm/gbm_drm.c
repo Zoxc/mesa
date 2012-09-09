@@ -41,18 +41,29 @@
 #endif
 
 static INLINE enum pipe_format
-gbm_format_to_gallium(enum gbm_bo_format format)
+gbm_format_to_gallium(uint32_t format)
 {
    switch (format) {
-   case GBM_BO_FORMAT_XRGB8888:
+   case GBM_FORMAT_XRGB8888:
       return PIPE_FORMAT_B8G8R8X8_UNORM;
-   case GBM_BO_FORMAT_ARGB8888:
+   case GBM_FORMAT_ARGB8888:
       return PIPE_FORMAT_B8G8R8A8_UNORM;
    default:
       return PIPE_FORMAT_NONE;
    }
+}
 
-   return PIPE_FORMAT_NONE;
+static INLINE uint32_t
+gbm_format_from_gallium(enum pipe_format format)
+{
+   switch (format) {
+   case PIPE_FORMAT_B8G8R8X8_UNORM:
+      return GBM_FORMAT_XRGB8888;
+   case PIPE_FORMAT_B8G8R8A8_UNORM:
+      return GBM_FORMAT_ARGB8888;
+   default:
+      return PIPE_FORMAT_NONE;
+   }
 }
 
 static INLINE uint
@@ -74,7 +85,7 @@ gbm_usage_to_gallium(uint usage)
 
 static int
 gbm_gallium_drm_is_format_supported(struct gbm_device *gbm,
-                                    enum gbm_bo_format format,
+                                    uint32_t format,
                                     uint32_t usage)
 {
    struct gbm_gallium_drm_device *gdrm = gbm_gallium_drm_device(gbm);
@@ -88,7 +99,7 @@ gbm_gallium_drm_is_format_supported(struct gbm_device *gbm,
                                           gbm_usage_to_gallium(usage)))
       return 0;
 
-   if (usage & GBM_BO_USE_SCANOUT && format != GBM_BO_FORMAT_XRGB8888)
+   if (usage & GBM_BO_USE_SCANOUT && format != GBM_FORMAT_XRGB8888)
       return 0;
 
    return 1;
@@ -144,14 +155,9 @@ gbm_gallium_drm_bo_import(struct gbm_device *gbm,
    bo->base.base.width = resource->width0;
    bo->base.base.height = resource->height0;
 
-   switch (resource->format) {
-   case PIPE_FORMAT_B8G8R8X8_UNORM:
-      bo->base.base.format = GBM_BO_FORMAT_XRGB8888;
-      break;
-   case PIPE_FORMAT_B8G8R8A8_UNORM:
-      bo->base.base.format = GBM_BO_FORMAT_ARGB8888;
-      break;
-   default:
+   bo->base.base.format = gbm_format_from_gallium(resource->format);
+
+   if (bo->base.base.format == GBM_FORMAT_NONE) {
       FREE(bo);
       return NULL;
    }
@@ -171,7 +177,7 @@ gbm_gallium_drm_bo_import(struct gbm_device *gbm,
 static struct gbm_bo *
 gbm_gallium_drm_bo_create(struct gbm_device *gbm,
                           uint32_t width, uint32_t height,
-                          enum gbm_bo_format format, uint32_t usage)
+                          uint32_t format, uint32_t usage)
 {
    struct gbm_gallium_drm_device *gdrm = gbm_gallium_drm_device(gbm);
    struct gbm_gallium_drm_bo *bo;
