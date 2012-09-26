@@ -139,7 +139,7 @@ dri2_drawable_get_buffers(struct dri_drawable *drawable,
        * may occur as the stvis->color_format or
        * stvis->depth_stencil_format.
        */
-      switch(format) {
+      switch(util_format_linear(format)) {
       case PIPE_FORMAT_B8G8R8A8_UNORM:
 	 depth = 32;
 	 break;

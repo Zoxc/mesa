@@ -274,6 +274,8 @@ st_new_renderbuffer_fb(enum pipe_format format, int samples, boolean sw)
 {
    struct st_renderbuffer *strb;
 
+   format = util_format_linear(format);
+
    strb = ST_CALLOC_STRUCT(st_renderbuffer);
    if (!strb) {
       _mesa_error(NULL, GL_OUT_OF_MEMORY, "creating renderbuffer");
