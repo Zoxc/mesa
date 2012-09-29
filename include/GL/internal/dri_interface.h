@@ -912,7 +912,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 5
+#define __DRI_IMAGE_VERSION 6
 
 /**
  * These formats correspond to the similarly named MESA_FORMAT_*
@@ -982,6 +982,15 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_COMPONENTS_Y_U_V	0x3003
 #define __DRI_IMAGE_COMPONENTS_Y_UV	0x3004
 #define __DRI_IMAGE_COMPONENTS_Y_XUXV	0x3005
+
+/**
+ * Flags for duplicateImage.
+ *
+ * \since 6
+ */
+
+#define __DRI_IMAGE_FLAG_SRGB_VIEW	0x0001
+#define __DRI_IMAGE_FLAG_LINEAR_VIEW	0x0002
 
 
 /**
@@ -1061,6 +1070,15 @@ struct __DRIimageExtensionRec {
     */
     __DRIimage *(*fromPlanar)(__DRIimage *image, int plane,
                               void *loaderPrivate);
+
+   /**
+    * The new __DRIimage will share the raw content with the old one,
+    * but it might have a different format.
+    *
+    * \since 6
+    */
+    __DRIimage *(*duplicateImage)(__DRIscreen *screen, __DRIimage *image,
+                              unsigned int flags, void *loaderPrivate);
 };
 
 
