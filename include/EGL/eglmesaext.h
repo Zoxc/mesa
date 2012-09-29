@@ -109,6 +109,14 @@ typedef EGLDisplay (EGLAPIENTRYP PFNEGLGETDRMDISPLAYMESA) (int fd);
 #endif
 #endif
 
+#ifndef EGL_MESA_image_sRGB
+#define EGL_MESA_image_sRGB 1
+#define EGL_GAMMA_MESA 0x4534001 /* eglCreateImageKHR attribute */
+#define EGL_DEFAULT_MESA 0x4534002
+#define EGL_LINEAR_MESA 0x4534003
+#define EGL_sRGB_MESA 0x4534004
+#endif
+
 #ifndef EGL_WL_bind_wayland_display
 #define EGL_WL_bind_wayland_display 1
 

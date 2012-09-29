@@ -340,11 +340,16 @@ dri2_swap_buffers(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *draw)
 
 static _EGLImage *
 dri2_create_image_khr_pixmap(_EGLDisplay *disp, _EGLContext *ctx,
-			     EGLClientBuffer buffer, const EGLint *attr_list)
+			     EGLClientBuffer buffer, _EGLImageAttribs *attrs)
 {
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
    struct gbm_dri_bo *dri_bo = gbm_dri_bo((struct gbm_bo *) buffer);
    struct dri2_egl_image *dri2_img;
+
+   if (attrs->GammaMESA != EGL_DEFAULT_MESA) {
+      _eglError(EGL_BAD_ACCESS, "dri2_create_image_khr_pixmap");
+      return NULL;
+   }
 
    dri2_img = malloc(sizeof *dri2_img);
    if (!dri2_img) {
@@ -372,13 +377,20 @@ dri2_drm_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
                           _EGLContext *ctx, EGLenum target,
                           EGLClientBuffer buffer, const EGLint *attr_list)
 {
+   EGLint err;
+   _EGLImageAttribs attrs;
+
    (void) drv;
+
+   err = _eglParseImageAttribList(&attrs, disp, attr_list);
+   if (err != EGL_SUCCESS)
+      return NULL;
 
    switch (target) {
    case EGL_NATIVE_PIXMAP_KHR:
-      return dri2_create_image_khr_pixmap(disp, ctx, buffer, attr_list);
+      return dri2_create_image_khr_pixmap(disp, ctx, buffer, &attrs);
    default:
-      return dri2_create_image_khr(drv, disp, ctx, target, buffer, attr_list);
+      return dri2_create_image_khr(drv, disp, ctx, target, buffer, &attrs);
    }
 }
 

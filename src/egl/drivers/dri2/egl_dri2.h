@@ -254,7 +254,7 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
 _EGLImage *
 dri2_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 		      _EGLContext *ctx, EGLenum target,
-		      EGLClientBuffer buffer, const EGLint *attr_list);
+		      EGLClientBuffer buffer, _EGLImageAttribs *attrs);
 
 EGLBoolean
 dri2_initialize_x11(_EGLDriver *drv, _EGLDisplay *disp);

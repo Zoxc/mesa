@@ -53,6 +53,9 @@ struct _egl_image_attribs
 
    /* EGL_WL_bind_wayland_display */
    EGLint PlaneWL;
+
+   /* EGL_MESA_image_sRGB */
+   EGLint GammaMESA;
 };
 
 /**

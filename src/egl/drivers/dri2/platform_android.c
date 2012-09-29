@@ -280,12 +280,18 @@ droid_swap_buffers(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *draw)
 
 static _EGLImage *
 dri2_create_image_android_native_buffer(_EGLDisplay *disp,
-                                        struct ANativeWindowBuffer *buf)
+                                        struct ANativeWindowBuffer *buf,
+                                        _EGLImageAttribs *attrs)
 {
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
    struct dri2_egl_image *dri2_img;
    int name;
    EGLint format;
+
+   if (attrs->GammaMESA != EGL_DEFAULT_MESA) {
+      _eglError(EGL_BAD_ACCESS, "eglCreateEGLImageKHR");
+      return NULL;
+   }
 
    if (!buf || buf->common.magic != ANDROID_NATIVE_BUFFER_MAGIC ||
        buf->common.version != sizeof(*buf)) {
@@ -356,12 +362,19 @@ droid_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 		       _EGLContext *ctx, EGLenum target,
 		       EGLClientBuffer buffer, const EGLint *attr_list)
 {
+   EGLint err;
+   _EGLImageAttribs attrs;
+
+   err = _eglParseImageAttribList(&attrs, disp, attr_list);
+   if (err != EGL_SUCCESS)
+      return NULL;
+
    switch (target) {
    case EGL_NATIVE_BUFFER_ANDROID:
       return dri2_create_image_android_native_buffer(disp,
-            (struct ANativeWindowBuffer *) buffer);
+            (struct ANativeWindowBuffer *) buffer, &attrs);
    default:
-      return dri2_create_image_khr(drv, disp, ctx, target, buffer, attr_list);
+      return dri2_create_image_khr(drv, disp, ctx, target, buffer, &attrs);
    }
 }
 

@@ -490,6 +490,7 @@ dri2_setup_screen(_EGLDisplay *disp)
       disp->Extensions.MESA_drm_image = EGL_TRUE;
       disp->Extensions.KHR_image_base = EGL_TRUE;
       disp->Extensions.KHR_gl_renderbuffer_image = EGL_TRUE;
+      disp->Extensions.MESA_image_sRGB = EGL_TRUE;
    }
 }
 
@@ -1021,12 +1022,17 @@ dri2_create_image(_EGLDisplay *disp, __DRIimage *dri_image)
 static _EGLImage *
 dri2_create_image_khr_renderbuffer(_EGLDisplay *disp, _EGLContext *ctx,
 				   EGLClientBuffer buffer,
-				   const EGLint *attr_list)
+				   _EGLImageAttribs *attrs)
 {
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
    struct dri2_egl_context *dri2_ctx = dri2_egl_context(ctx);
    GLuint renderbuffer = (GLuint) (uintptr_t) buffer;
    __DRIimage *dri_image;
+
+   if (attrs->GammaMESA != EGL_DEFAULT_MESA) {
+      _eglError(EGL_BAD_ACCESS, "dri2_create_image_khr_renderbuffer");
+      return EGL_NO_IMAGE_KHR;
+   }
 
    if (renderbuffer == 0) {
       _eglError(EGL_BAD_PARAMETER, "dri2_create_image_khr");
@@ -1042,30 +1048,30 @@ dri2_create_image_khr_renderbuffer(_EGLDisplay *disp, _EGLContext *ctx,
 
 static _EGLImage *
 dri2_create_image_mesa_drm_buffer(_EGLDisplay *disp, _EGLContext *ctx,
-				  EGLClientBuffer buffer, const EGLint *attr_list)
+				  EGLClientBuffer buffer, _EGLImageAttribs *attrs)
 {
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
-   EGLint format, name, pitch, err;
-   _EGLImageAttribs attrs;
+   EGLint format, name, pitch;
    __DRIimage *dri_image;
 
    name = (EGLint) (uintptr_t) buffer;
 
-   err = _eglParseImageAttribList(&attrs, disp, attr_list);
-   if (err != EGL_SUCCESS)
+   if (attrs->GammaMESA != EGL_DEFAULT_MESA) {
+      _eglError(EGL_BAD_ACCESS, "dri2_create_image_mesa_drm_buffer");
       return NULL;
+   }
 
-   if (attrs.Width <= 0 || attrs.Height <= 0 ||
-       attrs.DRMBufferStrideMESA <= 0) {
+   if (attrs->Width <= 0 || attrs->Height <= 0 ||
+       attrs->DRMBufferStrideMESA <= 0) {
       _eglError(EGL_BAD_PARAMETER,
 		"bad width, height or stride");
       return NULL;
    }
 
-   switch (attrs.DRMBufferFormatMESA) {
+   switch (attrs->DRMBufferFormatMESA) {
    case EGL_DRM_BUFFER_FORMAT_ARGB32_MESA:
       format = __DRI_IMAGE_FORMAT_ARGB8888;
-      pitch = attrs.DRMBufferStrideMESA;
+      pitch = attrs->DRMBufferStrideMESA;
       break;
    default:
       _eglError(EGL_BAD_PARAMETER,
@@ -1075,8 +1081,8 @@ dri2_create_image_mesa_drm_buffer(_EGLDisplay *disp, _EGLContext *ctx,
 
    dri_image =
       dri2_dpy->image->createImageFromName(dri2_dpy->dri_screen,
-					   attrs.Width,
-					   attrs.Height,
+					   attrs->Width,
+					   attrs->Height,
 					   format,
 					   name,
 					   pitch,
@@ -1108,26 +1114,18 @@ static const struct wl_drm_components_descriptor {
 static _EGLImage *
 dri2_create_image_wayland_wl_buffer(_EGLDisplay *disp, _EGLContext *ctx,
 				    EGLClientBuffer _buffer,
-				    const EGLint *attr_list)
+				    _EGLImageAttribs *attrs)
 {
    struct wl_drm_buffer *buffer = (struct wl_drm_buffer *) _buffer;
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
    const struct wl_drm_components_descriptor *f;
    __DRIimage *dri_image;
-   _EGLImageAttribs attrs;
-   EGLint err;
    int32_t plane;
 
    if (!wayland_buffer_is_drm(&buffer->buffer))
        return NULL;
 
-   err = _eglParseImageAttribList(&attrs, disp, attr_list);
-   plane = attrs.PlaneWL;
-   if (err != EGL_SUCCESS) {
-      _eglError(EGL_BAD_PARAMETER, "dri2_create_image_wayland_wl_buffer");
-      return NULL;
-   }
-
+   plane = attrs->PlaneWL;
    f = buffer->driver_format;
    if (plane < 0 || plane >= f->nplanes) {
       _eglError(EGL_BAD_PARAMETER,
@@ -1135,10 +1133,26 @@ dri2_create_image_wayland_wl_buffer(_EGLDisplay *disp, _EGLContext *ctx,
       return NULL;
    }
 
-   dri_image = dri2_dpy->image->fromPlanar(buffer->driver_buffer, plane, NULL);
+   if (attrs->GammaMESA != EGL_DEFAULT_MESA) {
+      if(dri2_dpy->image->base.version < 6) {
+         _eglError(EGL_BAD_ACCESS, "dri2_create_image_wayland_wl_buffer");
+         return NULL;
+      }
+
+      if(f->components != EGL_TEXTURE_RGB && f->components != EGL_TEXTURE_RGBA) {
+         _eglError(EGL_BAD_ACCESS, "dri2_create_image_wayland_wl_buffer");
+         return NULL;
+      }
+
+      dri_image = dri2_dpy->image->duplicateImage(dri2_dpy->dri_screen,
+                     buffer->driver_buffer,
+                     attrs->GammaMESA == EGL_sRGB_MESA ? __DRI_IMAGE_FLAG_SRGB_VIEW :
+                     __DRI_IMAGE_FLAG_LINEAR_VIEW, NULL);
+   } else
+      dri_image = dri2_dpy->image->fromPlanar(buffer->driver_buffer, plane, NULL);
 
    if (dri_image == NULL) {
-      _eglError(EGL_BAD_PARAMETER, "dri2_create_image_wayland_wl_buffer");
+      _eglError(EGL_BAD_ACCESS, "dri2_create_image_wayland_wl_buffer");
       return NULL;
    }
 
@@ -1149,23 +1163,39 @@ dri2_create_image_wayland_wl_buffer(_EGLDisplay *disp, _EGLContext *ctx,
 _EGLImage *
 dri2_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 		      _EGLContext *ctx, EGLenum target,
-		      EGLClientBuffer buffer, const EGLint *attr_list)
+		      EGLClientBuffer buffer, _EGLImageAttribs *attrs)
 {
    (void) drv;
 
    switch (target) {
    case EGL_GL_RENDERBUFFER_KHR:
-      return dri2_create_image_khr_renderbuffer(disp, ctx, buffer, attr_list);
+      return dri2_create_image_khr_renderbuffer(disp, ctx, buffer, attrs);
    case EGL_DRM_BUFFER_MESA:
-      return dri2_create_image_mesa_drm_buffer(disp, ctx, buffer, attr_list);
+      return dri2_create_image_mesa_drm_buffer(disp, ctx, buffer, attrs);
 #ifdef HAVE_WAYLAND_PLATFORM
    case EGL_WAYLAND_BUFFER_WL:
-      return dri2_create_image_wayland_wl_buffer(disp, ctx, buffer, attr_list);
+      return dri2_create_image_wayland_wl_buffer(disp, ctx, buffer, attrs);
 #endif
    default:
       _eglError(EGL_BAD_PARAMETER, "dri2_create_image_khr");
       return EGL_NO_IMAGE_KHR;
    }
+}
+
+static _EGLImage *
+dri2_create_image_khr_fallback(_EGLDriver *drv, _EGLDisplay *disp,
+                          _EGLContext *ctx, EGLenum target,
+                          EGLClientBuffer buffer, const EGLint *attr_list)
+{
+   EGLint err;
+   _EGLImageAttribs attrs;
+
+   err = _eglParseImageAttribList(&attrs, disp, attr_list);
+   if (err != EGL_SUCCESS) {
+      return NULL;
+   }
+
+   return dri2_create_image_khr(drv, disp, ctx, target, buffer, &attrs);
 }
 
 static EGLBoolean
@@ -1498,7 +1528,7 @@ _eglBuiltInDriverDRI2(const char *args)
    dri2_drv->base.API.WaitNative = dri2_wait_native;
    dri2_drv->base.API.BindTexImage = dri2_bind_tex_image;
    dri2_drv->base.API.ReleaseTexImage = dri2_release_tex_image;
-   dri2_drv->base.API.CreateImageKHR = dri2_create_image_khr;
+   dri2_drv->base.API.CreateImageKHR = dri2_create_image_khr_fallback;
    dri2_drv->base.API.DestroyImageKHR = dri2_destroy_image_khr;
    dri2_drv->base.API.CreateDRMImageMESA = dri2_create_drm_image_mesa;
    dri2_drv->base.API.ExportDRMImageMESA = dri2_export_drm_image_mesa;
