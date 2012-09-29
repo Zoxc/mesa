@@ -807,6 +807,10 @@ st_manager_get_egl_image_surface(struct st_context *st,
       return NULL;
 
    u_surface_default_template(&surf_tmpl, stimg.texture, usage);
+
+   if(stimg.format != PIPE_FORMAT_NONE)
+      surf_tmpl.format = stimg.format;
+
    surf_tmpl.u.tex.level = stimg.level;
    surf_tmpl.u.tex.first_layer = stimg.layer;
    surf_tmpl.u.tex.last_layer = stimg.layer;
