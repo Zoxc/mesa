@@ -309,6 +309,9 @@ st_new_renderbuffer_fb(enum pipe_format format, int samples, boolean sw)
    case PIPE_FORMAT_B5G6R5_UNORM:
       strb->Base.InternalFormat = GL_RGB565;
       break;
+   case PIPE_FORMAT_R16G16B16A16_UNORM:
+      strb->Base.InternalFormat = GL_RGBA16;
+      break;
    case PIPE_FORMAT_Z16_UNORM:
       strb->Base.InternalFormat = GL_DEPTH_COMPONENT16;
       break;

@@ -936,6 +936,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FORMAT_R8           0x1006 /* Since version 5 */
 #define __DRI_IMAGE_FORMAT_GR88         0x1007
 #define __DRI_IMAGE_FORMAT_NONE         0x1008
+#define __DRI_IMAGE_FORMAT_ABGR16161616 0x1009 /* Since version 6 */
 
 #define __DRI_IMAGE_USE_SHARE		0x0001
 #define __DRI_IMAGE_USE_SCANOUT		0x0002
@@ -962,6 +963,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FOURCC_NV12		0x3231564e
 #define __DRI_IMAGE_FOURCC_NV16		0x3631564e
 #define __DRI_IMAGE_FOURCC_YUYV		0x56595559
+#define __DRI_IMAGE_FOURCC_ABGR16161616 0x53344241 /* Since version 6 */
 
 
 /**

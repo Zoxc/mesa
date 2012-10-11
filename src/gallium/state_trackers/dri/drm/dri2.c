@@ -140,6 +140,9 @@ dri2_drawable_get_buffers(struct dri_drawable *drawable,
        * stvis->depth_stencil_format.
        */
       switch(util_format_linear(format)) {
+      case PIPE_FORMAT_R16G16B16A16_UNORM:
+	 depth = 64;
+	 break;
       case PIPE_FORMAT_B8G8R8A8_UNORM:
 	 depth = 32;
 	 break;
@@ -318,6 +321,9 @@ dri2_allocate_buffer(__DRIscreen *sPriv,
    bind |= PIPE_BIND_SHARED;
 
    switch (format) {
+      case 64:
+         pf = PIPE_FORMAT_R16G16B16A16_UNORM;
+         break;
       case 32:
          pf = PIPE_FORMAT_B8G8R8A8_UNORM;
          break;
@@ -455,6 +461,9 @@ dri2_create_image_from_name(__DRIscreen *_screen,
       break;
    case __DRI_IMAGE_FORMAT_ABGR8888:
       pf = PIPE_FORMAT_R8G8B8A8_UNORM;
+      break;
+   case __DRI_IMAGE_FORMAT_ABGR16161616:
+      pf = PIPE_FORMAT_R16G16B16A16_UNORM;
       break;
    default:
       pf = PIPE_FORMAT_NONE;
@@ -691,6 +700,10 @@ dri2_from_names(__DRIscreen *screen, int width, int height, int format,
    case __DRI_IMAGE_FOURCC_XBGR8888:
       format = __DRI_IMAGE_FORMAT_XBGR8888;
       dri_components = __DRI_IMAGE_COMPONENTS_RGB;
+      break;
+   case __DRI_IMAGE_FOURCC_ABGR16161616:
+      format = __DRI_IMAGE_FORMAT_ABGR16161616;
+      dri_components = __DRI_IMAGE_COMPONENTS_RGBA;
       break;
    default:
       return NULL;

@@ -119,6 +119,7 @@ drm_create_buffer(struct wl_client *client, struct wl_resource *resource,
 		  uint32_t stride, uint32_t format)
 {
         switch (format) {
+        case WL_DRM_FORMAT_ABGR16161616:
         case WL_DRM_FORMAT_ARGB8888:
         case WL_DRM_FORMAT_XRGB8888:
         case WL_DRM_FORMAT_YUYV:
@@ -196,6 +197,8 @@ bind_drm(struct wl_client *client, void *data, uint32_t version, uint32_t id)
 			       WL_DRM_FORMAT_ARGB8888);
 	wl_resource_post_event(resource, WL_DRM_FORMAT,
 			       WL_DRM_FORMAT_XRGB8888);
+	wl_resource_post_event(resource, WL_DRM_FORMAT,
+			       WL_DRM_FORMAT_ABGR16161616);
         wl_resource_post_event(resource, WL_DRM_FORMAT, WL_DRM_FORMAT_YUV410);
         wl_resource_post_event(resource, WL_DRM_FORMAT, WL_DRM_FORMAT_YUV411);
         wl_resource_post_event(resource, WL_DRM_FORMAT, WL_DRM_FORMAT_YUV420);

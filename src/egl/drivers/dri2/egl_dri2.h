@@ -215,6 +215,7 @@ struct dri2_egl_config
    _EGLConfig         base;
    const __DRIconfig *dri_single_config;
    const __DRIconfig *dri_double_config;
+   unsigned int format;
 };
 
 struct dri2_egl_image

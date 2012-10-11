@@ -153,8 +153,9 @@ driGetRendererString( char * buffer, const char * hardware_name,
  * \param fb_type       Type of the pixels in the framebuffer.  Currently only
  *                      \c GL_UNSIGNED_SHORT_5_6_5, 
  *                      \c GL_UNSIGNED_SHORT_5_6_5_REV,
- *                      \c GL_UNSIGNED_INT_8_8_8_8, and
- *                      \c GL_UNSIGNED_INT_8_8_8_8_REV are supported.
+ *                      \c GL_UNSIGNED_INT_8_8_8_8,
+ *                      \c GL_UNSIGNED_INT_8_8_8_8_REV and
+ *                      \c GL_UNSIGNED_SHORT are supported.
  * \param depth_bits    Array of depth buffer sizes to be exposed.
  * \param stencil_bits  Array of stencil buffer sizes to be exposed.
  * \param num_depth_stencil_bits  Number of entries in both \c depth_bits and
@@ -192,57 +193,64 @@ driCreateConfigs(GLenum fb_format, GLenum fb_type,
 		 const uint8_t * msaa_samples, unsigned num_msaa_modes,
 		 GLboolean enable_accum)
 {
-   static const uint8_t bits_table[4][4] = {
+   static const uint8_t bits_table[6][4] = {
      /* R  G  B  A */
       { 3, 3, 2, 0 }, /* Any GL_UNSIGNED_BYTE_3_3_2 */
       { 5, 6, 5, 0 }, /* Any GL_UNSIGNED_SHORT_5_6_5 */
       { 8, 8, 8, 0 }, /* Any RGB with any GL_UNSIGNED_INT_8_8_8_8 */
-      { 8, 8, 8, 8 }  /* Any RGBA with any GL_UNSIGNED_INT_8_8_8_8 */
+      { 8, 8, 8, 8 },  /* Any RGBA with any GL_UNSIGNED_INT_8_8_8_8 */
+      { 16, 16, 16, 0 }, /* Any RGB with GL_UNSIGNED_SHORT */
+      { 16, 16, 16, 16 }  /* Any RGBA with GL_UNSIGNED_SHORT */
    };
 
-   static const uint32_t masks_table_rgb[6][4] = {
+   static const uint32_t masks_table_rgb[7][4] = {
       { 0x000000E0, 0x0000001C, 0x00000003, 0x00000000 }, /* 3_3_2       */
       { 0x00000007, 0x00000038, 0x000000C0, 0x00000000 }, /* 2_3_3_REV   */
       { 0x0000F800, 0x000007E0, 0x0000001F, 0x00000000 }, /* 5_6_5       */
       { 0x0000001F, 0x000007E0, 0x0000F800, 0x00000000 }, /* 5_6_5_REV   */
       { 0xFF000000, 0x00FF0000, 0x0000FF00, 0x00000000 }, /* 8_8_8_8     */
-      { 0x000000FF, 0x0000FF00, 0x00FF0000, 0x00000000 }  /* 8_8_8_8_REV */
+      { 0x000000FF, 0x0000FF00, 0x00FF0000, 0x00000000 }, /* 8_8_8_8_REV */
+      { 1, 2, 3, 0 }, /* SHORT */
    };
 
-   static const uint32_t masks_table_rgba[6][4] = {
+   static const uint32_t masks_table_rgba[7][4] = {
       { 0x000000E0, 0x0000001C, 0x00000003, 0x00000000 }, /* 3_3_2       */
       { 0x00000007, 0x00000038, 0x000000C0, 0x00000000 }, /* 2_3_3_REV   */
       { 0x0000F800, 0x000007E0, 0x0000001F, 0x00000000 }, /* 5_6_5       */
       { 0x0000001F, 0x000007E0, 0x0000F800, 0x00000000 }, /* 5_6_5_REV   */
       { 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF }, /* 8_8_8_8     */
       { 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000 }, /* 8_8_8_8_REV */
+      { 1, 2, 3, 4 }, /* SHORT */
    };
 
-   static const uint32_t masks_table_bgr[6][4] = {
+   static const uint32_t masks_table_bgr[7][4] = {
       { 0x00000007, 0x00000038, 0x000000C0, 0x00000000 }, /* 3_3_2       */
       { 0x000000E0, 0x0000001C, 0x00000003, 0x00000000 }, /* 2_3_3_REV   */
       { 0x0000001F, 0x000007E0, 0x0000F800, 0x00000000 }, /* 5_6_5       */
       { 0x0000F800, 0x000007E0, 0x0000001F, 0x00000000 }, /* 5_6_5_REV   */
       { 0x0000FF00, 0x00FF0000, 0xFF000000, 0x00000000 }, /* 8_8_8_8     */
       { 0x00FF0000, 0x0000FF00, 0x000000FF, 0x00000000 }, /* 8_8_8_8_REV */
+      { 3, 2, 1, 0 }, /* SHORT */
    };
 
-   static const uint32_t masks_table_bgra[6][4] = {
+   static const uint32_t masks_table_bgra[7][4] = {
       { 0x00000007, 0x00000038, 0x000000C0, 0x00000000 }, /* 3_3_2       */
       { 0x000000E0, 0x0000001C, 0x00000003, 0x00000000 }, /* 2_3_3_REV   */
       { 0x0000001F, 0x000007E0, 0x0000F800, 0x00000000 }, /* 5_6_5       */
       { 0x0000F800, 0x000007E0, 0x0000001F, 0x00000000 }, /* 5_6_5_REV   */
       { 0x0000FF00, 0x00FF0000, 0xFF000000, 0x000000FF }, /* 8_8_8_8     */
       { 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000 }, /* 8_8_8_8_REV */
+      { 3, 2, 1, 4 }, /* SHORT */
    };
 
-   static const uint8_t bytes_per_pixel[6] = {
+   static const uint8_t bytes_per_pixel[7] = {
       1, /* 3_3_2       */
       1, /* 2_3_3_REV   */
       2, /* 5_6_5       */
       2, /* 5_6_5_REV   */
       4, /* 8_8_8_8     */
-      4  /* 8_8_8_8_REV */
+      4, /* 8_8_8_8_REV */
+      8  /* SHORT       */
    };
 
    const uint8_t  * bits;
@@ -272,6 +280,9 @@ driCreateConfigs(GLenum fb_format, GLenum fb_type,
 	 break;
       case GL_UNSIGNED_INT_8_8_8_8_REV:
 	 index = 5;
+	 break;
+      case GL_UNSIGNED_SHORT:
+	 index = 6;
 	 break;
       default:
 	 fprintf( stderr, "[%s:%u] Unknown framebuffer type 0x%04x.\n",
@@ -316,6 +327,11 @@ driCreateConfigs(GLenum fb_format, GLenum fb_type,
       case 2:
 	 bits = bits_table[1];
 	 break;
+      case 8:
+	 bits = ((fb_format == GL_RGB) || (fb_format == GL_BGR))
+	    ? bits_table[4]
+	    : bits_table[5];
+	 break;
       default:
 	 bits = ((fb_format == GL_RGB) || (fb_format == GL_BGR))
 	    ? bits_table[2]
@@ -352,7 +368,7 @@ driCreateConfigs(GLenum fb_format, GLenum fb_type,
 		    modes->accumRedBits   = 16 * j;
 		    modes->accumGreenBits = 16 * j;
 		    modes->accumBlueBits  = 16 * j;
-		    modes->accumAlphaBits = (masks[3] != 0) ? 16 * j : 0;
+		    modes->accumAlphaBits = (bits[3] != 0) ? 16 * j : 0;
 		    modes->visualRating = (j == 0) ? GLX_NONE : GLX_SLOW_CONFIG;
 
 		    modes->stencilBits = stencil_bits[k];

@@ -29,7 +29,7 @@
 
   <!-- drm support. This object is created by the server and published
        using the display's global event. -->
-  <interface name="wl_drm" version="1">
+  <interface name="wl_drm" version="2">
     <enum name="error">
       <entry name="authenticate_fail" value="0"/>
       <entry name="invalid_format" value="1"/>
@@ -79,6 +79,7 @@
       <entry name="abgr2101010" value="0x30334241"/>
       <entry name="rgba1010102" value="0x30334152"/>
       <entry name="bgra1010102" value="0x30334142"/>
+      <entry name="abgr16161616" value="0x53344241"/>
       <entry name="yuyv" value="0x56595559"/>
       <entry name="yvyu" value="0x55595659"/>
       <entry name="uyvy" value="0x59565955"/>

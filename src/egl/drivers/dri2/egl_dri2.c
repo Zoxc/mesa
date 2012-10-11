@@ -119,7 +119,7 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
    _EGLConfig base;
    unsigned int attrib, value, double_buffer;
    EGLint key, bind_to_texture_rgb, bind_to_texture_rgba;
-   unsigned int dri_masks[4] = { 0, 0, 0, 0 };
+   unsigned int dri_masks[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
    _EGLConfig *matching_config;
    EGLint num_configs = 0;
    EGLint config_id;
@@ -198,9 +198,15 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
    if (depth > 0 && depth != base.BufferSize)
       return NULL;
 
-   if (rgba_masks && memcmp(rgba_masks, dri_masks, sizeof(dri_masks)))
-      return NULL;
+   if (rgba_masks) {
+      dri_masks[4] = base.RedSize;
+      dri_masks[5] = base.GreenSize;
+      dri_masks[6] = base.BlueSize;
+      dri_masks[7] = base.AlphaSize;
 
+      if(memcmp(rgba_masks, dri_masks, sizeof(dri_masks)) != 0)
+         return NULL;
+   }
    base.NativeRenderable = EGL_TRUE;
 
    base.SurfaceType = surface_type;
@@ -251,6 +257,8 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
       }
       conf->base.SurfaceType = 0;
       conf->base.ConfigID = config_id;
+
+      conf->format = conf->base.RedSize == 16 ? 64 : 32;
 
       _eglLinkConfig(&conf->base);
    }

@@ -42,7 +42,8 @@
 
 enum wl_drm_format_flags {
    HAS_ARGB8888 = 1,
-   HAS_XRGB8888 = 2
+   HAS_XRGB8888 = 2,
+   HAS_ABGR16161616 = 4
 };
 
 static void
@@ -135,6 +136,8 @@ dri2_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
 
    if (conf->AlphaSize == 0)
       dri2_surf->format = WL_DRM_FORMAT_XRGB8888;
+   else if(conf->RedSize == 16)
+      dri2_surf->format = WL_DRM_FORMAT_ABGR16161616;
    else
       dri2_surf->format = WL_DRM_FORMAT_ARGB8888;
 
@@ -464,8 +467,9 @@ dri2_get_buffers(__DRIdrawable * driDrawable,
 		 int *out_count, void *loaderPrivate)
 {
    unsigned int *attachments_with_format;
+   struct dri2_egl_surface *dri2_surf = loaderPrivate;
+   struct dri2_egl_config *dri2_config = dri2_egl_config(dri2_surf->base.Config);
    __DRIbuffer *buffer;
-   const unsigned int format = 32;
    int i;
 
    attachments_with_format = calloc(count * 2, sizeof(unsigned int));
@@ -476,7 +480,7 @@ dri2_get_buffers(__DRIdrawable * driDrawable,
 
    for (i = 0; i < count; ++i) {
       attachments_with_format[2*i] = attachments[i];
-      attachments_with_format[2*i + 1] = format;
+      attachments_with_format[2*i + 1] = dri2_config->format;
    }
 
    buffer =
@@ -677,6 +681,9 @@ drm_handle_format(void *data, struct wl_drm *drm, uint32_t format)
    case WL_DRM_FORMAT_XRGB8888:
       dri2_dpy->formats |= HAS_XRGB8888;
       break;
+   case WL_DRM_FORMAT_ABGR16161616:
+      dri2_dpy->formats |= HAS_ABGR16161616;
+      break;
    }
 }
 
@@ -718,9 +725,14 @@ dri2_initialize_wayland(_EGLDriver *drv, _EGLDisplay *disp)
    const __DRIconfig *config;
    uint32_t types;
    int i;
-   static const unsigned int argb_masks[4] =
-      { 0xff0000, 0xff00, 0xff, 0xff000000 };
-   static const unsigned int rgb_masks[4] = { 0xff0000, 0xff00, 0xff, 0 };
+   static const unsigned int argb8_masks[8] =
+      { 0xff0000, 0xff00, 0xff, 0xff000000,
+        8, 8, 8, 8 };
+   static const unsigned int xrgb8_masks[8] = { 0xff0000, 0xff00, 0xff, 0,
+                                              8, 8, 8, 0 };
+
+   static const unsigned int abgr16_masks[8] = { 1, 2, 3, 4,
+                                              16, 16, 16, 16 };
 
    drv->API.CreateWindowSurface = dri2_create_window_surface;
    drv->API.DestroySurface = dri2_destroy_surface;
@@ -784,9 +796,11 @@ dri2_initialize_wayland(_EGLDriver *drv, _EGLDisplay *disp)
    for (i = 0; dri2_dpy->driver_configs[i]; i++) {
       config = dri2_dpy->driver_configs[i];
       if (dri2_dpy->formats & HAS_XRGB8888)
-	 dri2_add_config(disp, config, i + 1, 0, types, NULL, rgb_masks);
+	 dri2_add_config(disp, config, i + 1, 0, types, NULL, xrgb8_masks);
       if (dri2_dpy->formats & HAS_ARGB8888)
-	 dri2_add_config(disp, config, i + 1, 0, types, NULL, argb_masks);
+	 dri2_add_config(disp, config, i + 1, 0, types, NULL, argb8_masks);
+      if (dri2_dpy->formats & HAS_ABGR16161616)
+	 dri2_add_config(disp, config, i + 1, 0, types, NULL, abgr16_masks);
    }
 
    disp->Extensions.WL_bind_wayland_display = EGL_TRUE;
