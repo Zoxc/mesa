@@ -101,10 +101,22 @@ class PrintRemapTable(gl_XML.gl_print_base):
         return
 
     def printBody(self, api):
+        print '#ifndef __has_feature'
+        print '#define __has_feature(x) 0'
+        print '#endif'
+        print ''
+        print '#if __has_feature(attribute_analyzer_noreturn)'
+        print 'static inline _glapi_proc gl_table_null() __attribute__((analyzer_noreturn));'
+        print '#endif'
+        print ''
+        print 'static inline _glapi_proc gl_table_null() {'
+        print '   return NULL;'
+        print '}'
+        print ''
         print '#define CALL_by_offset(disp, cast, offset, parameters) \\'
         print '    (*(cast (GET_by_offset(disp, offset)))) parameters'
         print '#define GET_by_offset(disp, offset) \\'
-        print '    (offset >= 0) ? (((_glapi_proc *)(disp))[offset]) : NULL'
+        print '    (offset >= 0) ? (((_glapi_proc *)(disp))[offset]) : gl_table_null()'
         print '#define SET_by_offset(disp, offset, fn) \\'
         print '    do { \\'
         print '        if ( (offset) < 0 ) { \\'
