@@ -90,6 +90,18 @@ typedef unsigned char boolean;
 #endif
 #endif
 
+#ifndef __has_feature
+#  define __has_feature(x) 0
+#endif
+
+#ifndef ANALYZER_NORETURN
+#  if __has_feature(attribute_analyzer_noreturn)
+    #define ANALYZER_NORETURN __attribute__((analyzer_noreturn))
+#  else
+#  define ANALYZER_NORETURN
+#  endif
+#endif
+
 /* Function inlining */
 #ifndef inline
 #  ifdef __cplusplus
