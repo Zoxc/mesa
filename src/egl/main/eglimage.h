@@ -56,6 +56,9 @@ struct _egl_image_attribs
    EGLint DRMBufferUseMESA;
    EGLint DRMBufferStrideMESA;
 
+   /* EGL_MESA_image_sRGB */
+   EGLint GammaMESA;
+
    /* EGL_WL_bind_wayland_display */
    EGLint PlaneWL;
 

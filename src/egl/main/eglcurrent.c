@@ -325,6 +325,9 @@ _eglError(EGLint errCode, const char *msg)
          s = "EGL_BAD_MODE_MESA";
          break;
 #endif
+      case EGL_BAD_VIEW_MESA:
+         s = "EGL_BAD_VIEW_MESA";
+         break;
       default:
          s = "other EGL error";
       }

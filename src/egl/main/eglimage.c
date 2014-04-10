@@ -49,6 +49,7 @@ _eglParseImageAttribList(_EGLImageAttribs *attrs, _EGLDisplay *dpy,
    attrs->ImagePreserved = EGL_FALSE;
    attrs->GLTextureLevel = 0;
    attrs->GLTextureZOffset = 0;
+   attrs->GammaMESA = EGL_DEFAULT_MESA;
 
    if (!attrib_list)
       return err;
@@ -86,6 +87,11 @@ _eglParseImageAttribList(_EGLImageAttribs *attrs, _EGLDisplay *dpy,
          break;
       case EGL_DRM_BUFFER_STRIDE_MESA:
          attrs->DRMBufferStrideMESA = val;
+         break;
+
+      /* EGL_MESA_image_sRGB */
+      case EGL_GAMMA_MESA:
+         attrs->GammaMESA = val;
          break;
 
       /* EGL_WL_bind_wayland_display */

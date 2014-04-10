@@ -325,10 +325,11 @@ droid_swap_buffers(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *draw)
 
 static _EGLImage *
 dri2_create_image_android_native_buffer(_EGLDisplay *disp, _EGLContext *ctx,
-                                        struct ANativeWindowBuffer *buf)
+                                        struct ANativeWindowBuffer *buf,
+                                        const _EGLImageAttribs *attrs)
 {
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
-   struct dri2_egl_image *dri2_img;
+   __DRIimage *dri_image;
    int name;
    EGLint format;
 
@@ -380,18 +381,7 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp, _EGLContext *ctx,
       break;
    }
 
-   dri2_img = calloc(1, sizeof(*dri2_img));
-   if (!dri2_img) {
-      _eglError(EGL_BAD_ALLOC, "droid_create_image_mesa_drm");
-      return NULL;
-   }
-
-   if (!_eglInitImage(&dri2_img->base, disp)) {
-      free(dri2_img);
-      return NULL;
-   }
-
-   dri2_img->dri_image =
+   dri_image =
       dri2_dpy->image->createImageFromName(dri2_dpy->dri_screen,
 					   buf->width,
 					   buf->height,
@@ -399,13 +389,8 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp, _EGLContext *ctx,
 					   name,
 					   buf->stride,
 					   dri2_img);
-   if (!dri2_img->dri_image) {
-      free(dri2_img);
-      _eglError(EGL_BAD_ALLOC, "droid_create_image_mesa_drm");
-      return NULL;
-   }
 
-   return &dri2_img->base;
+   return dri2_create_image_from_dri(disp, dri_image, attrs);
 }
 
 static _EGLImage *
@@ -413,12 +398,19 @@ droid_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 		       _EGLContext *ctx, EGLenum target,
 		       EGLClientBuffer buffer, const EGLint *attr_list)
 {
+   EGLint err;
+   _EGLImageAttribs attrs;
+
+   err = _eglParseImageAttribList(&attrs, disp, attr_list);
+   if (err != EGL_SUCCESS)
+      return NULL;
+
    switch (target) {
    case EGL_NATIVE_BUFFER_ANDROID:
       return dri2_create_image_android_native_buffer(disp, ctx,
-            (struct ANativeWindowBuffer *) buffer);
+            (struct ANativeWindowBuffer *) buffer, &attrs);
    default:
-      return dri2_create_image_khr(drv, disp, ctx, target, buffer, attr_list);
+      return dri2_create_image_khr(drv, disp, ctx, target, buffer, &attrs);
    }
 }
 

@@ -896,10 +896,11 @@ dri2_x11_copy_buffers(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *surf,
 
 static _EGLImage *
 dri2_create_image_khr_pixmap(_EGLDisplay *disp, _EGLContext *ctx,
-			     EGLClientBuffer buffer, const EGLint *attr_list)
+			     EGLClientBuffer buffer,
+			     const _EGLImageAttribs *attrs)
 {
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
-   struct dri2_egl_image *dri2_img;
+   __DRIimage *dri_image;
    unsigned int attachments[1];
    xcb_drawable_t drawable;
    xcb_dri2_get_buffers_cookie_t buffers_cookie;
@@ -953,35 +954,20 @@ dri2_create_image_khr_pixmap(_EGLDisplay *disp, _EGLContext *ctx,
       return NULL;
    }
 
-   dri2_img = malloc(sizeof *dri2_img);
-   if (!dri2_img) {
-      free(buffers_reply);
-      free(geometry_reply);
-      _eglError(EGL_BAD_ALLOC, "dri2_create_image_khr");
-      return EGL_NO_IMAGE_KHR;
-   }
-
-   if (!_eglInitImage(&dri2_img->base, disp)) {
-      free(buffers_reply);
-      free(geometry_reply);
-      free(dri2_img);
-      return EGL_NO_IMAGE_KHR;
-   }
-
    stride = buffers[0].pitch / buffers[0].cpp;
-   dri2_img->dri_image =
+   dri_image =
       dri2_dpy->image->createImageFromName(dri2_dpy->dri_screen,
 					   buffers_reply->width,
 					   buffers_reply->height,
 					   format,
 					   buffers[0].name,
 					   stride,
-					   dri2_img);
+					   NULL);
 
    free(buffers_reply);
    free(geometry_reply);
 
-   return &dri2_img->base;
+   return dri2_create_image_from_dri(disp, dri_image, attrs);
 }
 
 static _EGLImage *
@@ -989,13 +975,20 @@ dri2_x11_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 			  _EGLContext *ctx, EGLenum target,
 			  EGLClientBuffer buffer, const EGLint *attr_list)
 {
+   EGLint err;
+   _EGLImageAttribs attrs;
+
    (void) drv;
+
+   err = _eglParseImageAttribList(&attrs, disp, attr_list);
+   if (err != EGL_SUCCESS)
+      return NULL;
 
    switch (target) {
    case EGL_NATIVE_PIXMAP_KHR:
-      return dri2_create_image_khr_pixmap(disp, ctx, buffer, attr_list);
+      return dri2_create_image_khr_pixmap(disp, ctx, buffer, &attrs);
    default:
-      return dri2_create_image_khr(drv, disp, ctx, target, buffer, attr_list);
+      return dri2_create_image_khr(drv, disp, ctx, target, buffer, &attrs);
    }
 }
 

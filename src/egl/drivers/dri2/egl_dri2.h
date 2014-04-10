@@ -311,9 +311,18 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
 		const unsigned int *rgba_masks);
 
 _EGLImage *
+dri2_create_image_from_dri(_EGLDisplay *disp, __DRIimage *dri_image,
+                  const _EGLImageAttribs *attrs);
+
+_EGLImage *
 dri2_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 		      _EGLContext *ctx, EGLenum target,
-		      EGLClientBuffer buffer, const EGLint *attr_list);
+		      EGLClientBuffer buffer, const _EGLImageAttribs *attrs);
+
+_EGLImage *
+dri2_create_image_khr_default(_EGLDriver *drv, _EGLDisplay *disp,
+                          _EGLContext *ctx, EGLenum target,
+                          EGLClientBuffer buffer, const EGLint *attr_list);
 
 EGLBoolean
 dri2_initialize_x11(_EGLDriver *drv, _EGLDisplay *disp);
