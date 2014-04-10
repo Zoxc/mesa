@@ -203,6 +203,7 @@ struct st_egl_image
 {
    /* this is owned by the caller */
    struct pipe_resource *texture;
+   enum pipe_format format;
 
    unsigned level;
    unsigned layer;

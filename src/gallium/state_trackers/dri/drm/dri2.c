@@ -817,6 +817,7 @@ dri2_dup_image(__DRIimage *image, void *loaderPrivate)
    img->level = image->level;
    img->layer = image->layer;
    img->dri_format = image->dri_format;
+   img->format = image->format;
    /* This should be 0 for sub images, but dup is also used for base images. */
    img->dri_components = image->dri_components;
    img->loader_private = loaderPrivate;
@@ -1025,6 +1026,41 @@ dri2_from_dma_bufs(__DRIscreen *screen,
    img->dri_components = dri_components;
 
    *error = __DRI_IMAGE_ERROR_SUCCESS;
+
+   return img;
+}
+
+static __DRIimage *
+dri2_duplicate_image(__DRIscreen *_screen, __DRIimage *image,
+                     unsigned int flags, void *loaderPrivate)
+{
+   enum pipe_format format;
+   struct dri_screen *screen = dri_screen(_screen);
+   __DRIimage *img = NULL;
+
+   if ((flags & __DRI_IMAGE_FLAG_SRGB_VIEW) && (flags & __DRI_IMAGE_FLAG_LINEAR_VIEW))
+      return NULL;
+
+   if (flags & (__DRI_IMAGE_FLAG_SRGB_VIEW | __DRI_IMAGE_FLAG_LINEAR_VIEW)) {
+      if (!image->texture)
+         return NULL;
+
+      if (flags & __DRI_IMAGE_FLAG_SRGB_VIEW)
+         format = util_format_srgb(image->texture->format);
+      else
+         format = util_format_linear(image->texture->format);
+
+      if (!screen->base.screen->is_format_supported(screen->base.screen, format, PIPE_TEXTURE_2D, 0, PIPE_BIND_SAMPLER_VIEW))
+         return NULL;
+
+      img = dri2_dup_image(image, loaderPrivate);
+
+      if (img)
+         img->format = format;
+   } else if (flags == 0) {
+      img = dri2_dup_image(image, loaderPrivate);
+   }
+
    return img;
 }
 
@@ -1036,7 +1072,7 @@ dri2_destroy_image(__DRIimage *img)
 }
 
 static struct __DRIimageExtensionRec dri2ImageExtension = {
-    { __DRI_IMAGE, 6 },
+    { __DRI_IMAGE, 9 },
     dri2_create_image_from_name,
     dri2_create_image_from_renderbuffer,
     dri2_destroy_image,
@@ -1047,6 +1083,9 @@ static struct __DRIimageExtensionRec dri2ImageExtension = {
     dri2_from_names,
     dri2_from_planar,
     dri2_create_from_texture,
+    NULL,
+    NULL,
+    dri2_duplicate_image,
 };
 
 /*
@@ -1102,7 +1141,6 @@ dri2_init_screen(__DRIscreen * sPriv)
       if (drmGetCap(sPriv->fd, DRM_CAP_PRIME, &cap) == 0 &&
           (cap & DRM_PRIME_CAP_IMPORT)) {
 
-         dri2ImageExtension.base.version = 8;
          dri2ImageExtension.createImageFromFds = dri2_from_fds;
          dri2ImageExtension.createImageFromDmaBufs = dri2_from_dma_bufs;
       }

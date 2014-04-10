@@ -326,6 +326,7 @@ dri_get_egl_image(struct st_manager *smapi,
 
    stimg->texture = NULL;
    pipe_resource_reference(&stimg->texture, img->texture);
+   stimg->format = img->format;
    stimg->level = img->level;
    stimg->layer = img->layer;
 
