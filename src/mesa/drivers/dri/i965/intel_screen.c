@@ -591,6 +591,47 @@ intel_dup_image(__DRIimage *orig_image, void *loaderPrivate)
    return image;
 }
 
+static __DRIimage *
+intel_from_planar(__DRIimage *parent, int plane, void *loaderPrivate);
+
+static __DRIimage *
+intel_duplicate_image(__DRIscreen *_screen, __DRIimage *image,
+                     unsigned int flags, void *loaderPrivate)
+{
+   __DRIimage *img;
+
+   if ((flags & __DRI_IMAGE_FLAG_SRGB_VIEW) && (flags & __DRI_IMAGE_FLAG_LINEAR_VIEW))
+      return NULL;
+
+   if (flags & (__DRI_IMAGE_FLAG_SRGB_VIEW | __DRI_IMAGE_FLAG_LINEAR_VIEW)) {
+
+      if (image->dri_format != __DRI_IMAGE_FORMAT_SARGB8 && image->dri_format != __DRI_IMAGE_FORMAT_ARGB8888)
+         return NULL;
+
+      if (image->planar_format)
+         img = intel_from_planar(image, 0, loaderPrivate);
+      else
+         img = intel_dup_image(image, loaderPrivate);
+
+      if (!img)
+         return NULL;
+
+      if (flags & __DRI_IMAGE_FLAG_SRGB_VIEW)
+         img->dri_format = __DRI_IMAGE_FORMAT_SARGB8;
+      else
+         img->dri_format = __DRI_IMAGE_FORMAT_ARGB8888;
+
+      img->format = driImageFormatToGLFormat(img->dri_format);
+      img->internal_format = _mesa_get_format_base_format(image->format);
+
+      return img;
+   } else if (flags == 0) {
+      return intel_dup_image(image, loaderPrivate);
+   } else {
+      return NULL;
+   }
+}
+
 static GLboolean
 intel_validate_usage(__DRIimage *image, unsigned int use)
 {
@@ -797,7 +838,7 @@ intel_from_planar(__DRIimage *parent, int plane, void *loaderPrivate)
 }
 
 static struct __DRIimageExtensionRec intelImageExtension = {
-    .base = { __DRI_IMAGE, 8 },
+    .base = { __DRI_IMAGE, 9 },
 
     .createImageFromName                = intel_create_image_from_name,
     .createImageFromRenderbuffer        = intel_create_image_from_renderbuffer,
@@ -810,7 +851,8 @@ static struct __DRIimageExtensionRec intelImageExtension = {
     .fromPlanar                         = intel_from_planar,
     .createImageFromTexture             = intel_create_image_from_texture,
     .createImageFromFds                 = intel_create_image_from_fds,
-    .createImageFromDmaBufs             = intel_create_image_from_dma_bufs
+    .createImageFromDmaBufs             = intel_create_image_from_dma_bufs,
+    .duplicateImage                     = intel_duplicate_image
 };
 
 static int
